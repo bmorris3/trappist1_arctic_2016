@@ -26,25 +26,23 @@ light_curve_errors = light_curve_errors[inliers]
 residuals = residuals[inliers]
 
 def model2(theta, times):
-    depth, t0 = theta[:2]
+    depth, t0, lna = theta
     return transit_model_b_depth_t0(times, depth, t0)
 
 
 def lnlike2(theta, t, y, yerr, tau):
-    lna, lns = theta[2:]
+    depth, t0, lna = theta
     gp = george.GP(np.exp(lna) * kernels.Matern32Kernel(tau),
                    solver=george.HODLRSolver)
-                   #kernels.WhiteKernel(c), solver=george.HODLRSolver) #solver=george.BasicSolver)
-    gp.compute(t, np.sqrt(yerr**2 + np.exp(2*lns)))
+    gp.compute(t, yerr)
     return gp.lnlikelihood(y - model2(theta, t))
 
 
 def lnprior2(theta):
-    lna, lns = theta[2:]
-    depth, t0 = theta[:2]
+    depth, t0, lna = theta
 
     if (0 < depth < 1 and params_b.t0 - 0.01 < t0 < params_b.t0 + 0.01 and
-        -20 < lna < 1 and -20 < lns < -4):
+        -20 < lna < 1):
         # Prior on depth from the discovery paper:
         return -0.5 * (depth - params_b.rp**2)**2/0.00025**2
     return -np.inf
@@ -69,9 +67,8 @@ if __name__ == '__main__':
 
 
     # Initial guesses based on iterative guessing
-    lna_init, lnc_init = -2, -15 #-5.16520654, -5.33 #1.04027941e-05
-    init_gp = np.array([lna_init, lnc_init])
-    initial = np.concatenate([initp, init_gp])
+    lna_init = -2  #-5.16520654, -5.33 #1.04027941e-05
+    initial = np.concatenate([initp, [lna_init]])
 
     ndim, nwalkers = len(initial), 8*len(initial)
     n_steps = 3000
@@ -103,6 +100,6 @@ if __name__ == '__main__':
 
     np.save('outputs/samples.npy', samples)
 
-    corner.corner(samples[::10, :], labels=['depth', 't0', 'lna', 'lns'])
+    corner.corner(samples[::10, :], labels=['depth', 't0', 'lna'])
 
     plt.show()
