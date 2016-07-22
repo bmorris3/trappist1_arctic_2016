@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from george import kernels
 from interpacf import interpolated_acf, dominant_period
+from astropy.stats import mad_std
 
 from toolkit.transit_model import params_b, transit_model_b_depth_t0
 
@@ -11,13 +12,18 @@ from toolkit.transit_model import params_b, transit_model_b_depth_t0
 times = np.load('outputs/times.npy')
 light_curve = np.load('outputs/bestlc.npy')
 light_curve_errors = np.load('outputs/bestlc_errors.npy')
-median = np.median(light_curve)
-inliers = np.abs(median - light_curve) < 3*np.std(light_curve)
 
-# Remove outliers
+init_transit_model = transit_model_b_depth_t0(times, params_b.rp**2,
+                                              params_b.t0)
+
+residuals = light_curve - init_transit_model
+
+inliers = np.abs(residuals) < 3*mad_std(residuals)
+
 times = times[inliers]
 light_curve = light_curve[inliers]
 light_curve_errors = light_curve_errors[inliers]
+residuals = residuals[inliers]
 
 def model2(theta, times):
     depth, t0 = theta[:2]
@@ -38,7 +44,7 @@ def lnprior2(theta):
     depth, t0 = theta[:2]
 
     if (0 < depth < 1 and params_b.t0 - 0.01 < t0 < params_b.t0 + 0.01 and
-        -15 < lna < 3 and -5.7 < lns < -4.8):
+        -20 < lna < 1 and -20 < lns < -4):
         # Prior on depth from the discovery paper:
         return -0.5 * (depth - params_b.rp**2)**2/0.00025**2
     return -np.inf
@@ -56,18 +62,19 @@ if __name__ == '__main__':
 
     # Compute acf, find autoregressive period
     lags, acf = interpolated_acf(times, light_curve - init_transit_model)
-    residual_period = dominant_period(lags, acf, fwhm=20, plot=True)
+    residual_period = dominant_period(lags, acf, fwhm=20, plot=True,
+                                      min=0.005, max=0.02)
     print(residual_period)
     plt.show()
 
 
     # Initial guesses based on iterative guessing
-    lna_init, lnc_init = -5.16520654, -5.33 #1.04027941e-05
+    lna_init, lnc_init = -2, -15 #-5.16520654, -5.33 #1.04027941e-05
     init_gp = np.array([lna_init, lnc_init])
     initial = np.concatenate([initp, init_gp])
 
     ndim, nwalkers = len(initial), 8*len(initial)
-    n_steps = 1000
+    n_steps = 3000
 
     # Set initial walker positions
     load_init_walker_positions = False
@@ -85,17 +92,17 @@ if __name__ == '__main__':
         pos = np.load('outputs/samples_near_convergence.npy')[-nwalkers:, :]
 
     print('begin mcmc')
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob2, threads=3,
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob2, threads=4,
                                     args=(times, light_curve,
                                           light_curve_errors, residual_period))
     sampler.run_mcmc(pos, n_steps)
-    burn_in = 0
+    burn_in = 2000
     samples = sampler.chain[:, burn_in:, :].reshape((-1, ndim))
 
     import corner
 
     np.save('outputs/samples.npy', samples)
 
-    corner.corner(samples[::100, :])
+    corner.corner(samples[::10, :], labels=['depth', 't0', 'lna', 'lns'])
 
     plt.show()
