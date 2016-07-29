@@ -13,8 +13,8 @@ from toolkit import regression_model, regression_coeffs
 # Paths to data files:
 allflats_path = 'outputs/allflats.npy'
 flat_dark_30s_paths = glob('/Users/bmmorris/data/UT160711/dark_quad_30.*.fits')
-flat_paths = glob('/Users/bmmorris/data/UT160711/nightskyflatz.*.fits')
-master_flat_path = 'outputs/masterflat_linreg.fits'
+flat_paths = glob('/Users/bmmorris/data/UT160711/morningskyflat.*.fits')
+master_flat_path = 'outputs/masterflat_morning_linreg.fits'
 
 # Construct cube of night sky flats
 
@@ -46,9 +46,9 @@ coefficients = np.ones((allflats.shape[0], allflats.shape[1]), dtype=float)
 
 median_pixel_flux = np.atleast_2d(np.median(allflats, axis=(0, 1))).T
 
-margin = 50
+margin = 5
 
-with ProgressBar(allflats.shape[0]*allflats.shape[1]) as bar:
+with ProgressBar(allflats.size) as bar:
     for i in range(margin, allflats.shape[0]-margin):
         for j in range(margin, allflats.shape[1]-margin):
             bar.update()
