@@ -5,3 +5,4 @@ from .regression import *
 from .star_selection import *
 from .reduction import *
 from .photometry_results import *
+from .pca import *

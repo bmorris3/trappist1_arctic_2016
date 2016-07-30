@@ -109,8 +109,10 @@ def reduce(image_paths, master_dark_path, master_flat_path, target_centroid,
 
     # Initialize some empty arrays to fill with data:
     times = np.zeros(len(image_paths))
-    fluxes = np.zeros((len(image_paths), len(star_positions), len(aperture_radii)))
-    errors = np.zeros((len(image_paths), len(star_positions), len(aperture_radii)))
+    fluxes = np.zeros((len(image_paths), len(star_positions),
+                       len(aperture_radii)))
+    errors = np.zeros((len(image_paths), len(star_positions),
+                       len(aperture_radii)))
     xcentroids = np.zeros((len(image_paths), len(star_positions)))
     ycentroids = np.zeros((len(image_paths), len(star_positions)))
     airmass = np.zeros(len(image_paths))
@@ -119,7 +121,6 @@ def reduce(image_paths, master_dark_path, master_flat_path, target_centroid,
     telfocus = np.zeros(len(image_paths))
     psf_stddev = np.zeros(len(image_paths))
 
-    means = np.zeros((len(image_paths), len(aperture_radii)))
     medians = np.zeros(len(image_paths))
 
     with ProgressBar(len(image_paths)) as bar:
@@ -201,108 +202,3 @@ def reduce(image_paths, master_dark_path, master_flat_path, target_centroid,
                                 psf_stddev, aperture_radii)
     results.save(output_path)
     return results
-
-# ## Taken from git/research/koi351/variableaperture.ipynb
-# stds = np.zeros_like(aperture_radii, dtype=float)
-# correctedlcs = []
-# correctedlc_errs = []
-#
-# for j, ap in enumerate(aperture_radii):
-#     target = fluxes[:, 0, j]
-#     compStars = fluxes[:,1:, j]
-#
-#     numCompStars = np.shape(fluxes[:, 1:, j])[1]
-#     initP = np.zeros([numCompStars]) + 1./numCompStars
-#
-#     ########################################################
-#
-#     def errfunc(p,target):
-#         if all(p >=0.0):
-#             #return np.dot(p,target.T) - compStars ## Find only positive coefficients
-#             return np.dot(p,compStars[:,:].T) - target ## Find only positive coefficients
-#
-#     #return np.dot(p,compStarsOOT.T) - target
-#     bestFitP = optimize.leastsq(errfunc, initP[:] ,args=(target.astype(np.float64)),
-#                                 maxfev=10000000, epsfcn=np.finfo(np.float32).eps)[0]
-#     print('\nDefault weight:',1./numCompStars)
-#     print('Best fit regression coefficients:',bestFitP)
-#
-#     #self.comparisonStarWeights = np.vstack([compStarKeys,bestFitP])
-#     meanComparisonStar = np.dot(bestFitP, compStars.T)
-#
-#     meanCompError = np.zeros_like(meanComparisonStar)
-#     for i in range(1,len(fluxes[0, :, j])):
-#         meanCompError += ((bestFitP[i-1]*fluxes[:, i, j]/np.sum(bestFitP[i-1]*fluxes[:, i, j]))**2 *
-#                           (errors[:, i, j]/fluxes[:, i, j])**2)
-#     meanCompError = meanComparisonStar*np.sqrt(meanCompError)
-#
-#     lc = fluxes[:, 0, j]/meanComparisonStar
-#     lc /= np.median(lc)
-#     lc_err = lc*np.sqrt((errors[:, 0, j]/fluxes[:, 0, j])**2 + (meanCompError/meanComparisonStar)**2)
-#
-#     # Fit airmass to the light curve
-#     def amtrend(p, t, airmass=airmass):
-#         '''p = [OOT flux, airmass coeff]'''
-#         return p[0]*(1 + p[1]*(airmass-1))
-#
-#     def errfunc(p, t, y, airmass=airmass):
-#         '''
-#         p = [OOT flux, airmass coeff]
-#         y = light curve
-#         '''
-#         return amtrend(p, t) - y
-#
-#     bestp = optimize.leastsq(errfunc, [1.0, 0.0], args=(times, lc))[0]
-#     correctedlc = lc/amtrend(bestp, times)
-#     correctedlc_err = lc_err/amtrend(bestp, times)
-#     correctedcomplc = correctedlc
-#     if False:
-#         # Make lc out of just comp stars
-#         comp0 = fluxes[:, 1, j]
-#         comp1 = fluxes[:, 2, j]
-#         bestp = optimize.leastsq(errfunc, [1.0, 0.0], args=(times, comp0/comp1))[0]
-#         correctedcomplc = comp0/comp1/amtrend(bestp, times)
-#         if False:
-#             fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
-#             ax[0].plot(times, comp0/comp1, '.')
-#             ax[0].plot(times, amtrend(bestp, times),'r')
-#             ax[1].plot(times, correctedcomplc,'.')
-#             plt.show()
-#
-#     stds[j] = np.std(correctedcomplc)
-#     correctedlcs.append(correctedlc)
-#     correctedlc_errs.append(correctedlc_err)
-#
-# best_aperture_index = np.argmin(stds)
-# print("Best aperture: {0}".format(aperture_radii[best_aperture_index]))
-# correctedlc = correctedlcs[best_aperture_index]
-# correctedlc_errs = correctedlc_errs[best_aperture_index]
-#
-#
-# fig, ax = plt.subplots(2, 2, figsize=(10, 10))
-# mininttime = int(np.min(times))
-# legendprops = {'numpoints':1, 'loc':'lower center'}
-#
-# ax[0, 0].plot(times - mininttime, target, '.', label='KOI-0377')
-#
-# for i in range(compStars.shape[1]):
-#     ax[0, 0].plot(times - mininttime, compStars[:,i], '.', label='Comp {0}'.format(i))
-# ax[0, 0].set_xlabel('JD - {0:d}'.format(mininttime))
-# ax[0, 0].set_ylabel('Counts')
-# ax[0, 0].set_title('Raw fluxes')
-# #ax[0, 0].legend(**legendprops)
-#
-# ax[0, 1].plot(times - mininttime, target, '.', label='Target')
-# ax[0, 1].plot(times - mininttime, meanComparisonStar, '.', label='Mean Comp')
-# ax[0, 1].set_xlabel('JD - {0:d}'.format(mininttime))
-# ax[0, 1].set_ylabel('Counts')
-# ax[0, 1].legend(**legendprops)
-# ax[0, 1].set_title('Mean comparison star')
-#
-# ax[1, 0].errorbar(times - mininttime, correctedlc, yerr=correctedlc_err,
-#                   fmt='.', color='k', ecolor='gray')
-# ax[1, 0].set_title('AM-corrected light curve')
-# ax[1, 0].set_xlabel('JD - {0:d}'.format(mininttime))
-# ax[1, 0].set_ylabel('Normalized flux')
-#
-# plt.show()
