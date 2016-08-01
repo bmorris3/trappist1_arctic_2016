@@ -3,8 +3,8 @@ from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
-from toolkit import (generate_master_flat_and_dark, reduce, PhotometryResults,
-                     PCA_light_curve, params_b)
+from toolkit import (generate_master_flat_and_dark, photometry,
+                     PhotometryResults, PCA_light_curve, params_b)
 
 # Image paths
 image_paths = sorted(glob('/Users/bmmorris/data/UT160711/TRAPPIST1.*.fits'))[:-130]
@@ -36,10 +36,11 @@ if not os.path.exists(master_dark_path) or not os.path.exists(master_flat_path):
 
 if not os.path.exists(output_path) or force_recompute_photometry:
     print('Calculating photometry:')
-    phot_results = reduce(image_paths, master_dark_path, master_flat_path,
-                          target_centroid, comparison_flux_threshold,
-                          aperture_radii, centroid_stamp_half_width,
-                          psf_stddev_init, aperture_annulus_radius, output_path)
+    phot_results = photometry(image_paths, master_dark_path, master_flat_path,
+                              target_centroid, comparison_flux_threshold,
+                              aperture_radii, centroid_stamp_half_width,
+                              psf_stddev_init, aperture_annulus_radius,
+                              output_path)
 
 else:
     phot_results = PhotometryResults.load(output_path)

@@ -14,65 +14,13 @@ from photutils import CircularAperture, CircularAnnulus, aperture_photometry
 from .star_selection import init_centroids
 from .photometry_results import PhotometryResults
 
-__all__ = ['reduce']
+__all__ = ['photometry']
 
-########################################################################
-## Settings:
-# make_master_dark = True
-# master_flat = fits.getdata('outputs/masterflat_morning_linreg.fits')
-#
-# # A DS9 regions file defines the initial guesses for stellar centroids,
-# # the first star in the regions file is TRAPPIST-1
-# # regions_file_path = 'outputs/trappist_6.reg'
-# master_dark_path = 'masterdark.fits'
-#
-# # Collect images for photometry
-# images = sorted(glob('/Users/bmmorris/data/UT160711/TRAPPIST1.*.fits'))
-# # Ignore two images with obvious cosmic rays:
-# images.pop(images.index('/Users/bmmorris/data/UT160711/TRAPPIST1.0143.fits'))
-# images.pop(images.index('/Users/bmmorris/data/UT160711/TRAPPIST1.0295.fits'))
-# # Ignore last images near sunrise
-# images = images[:-130]
-# target_centroid = np.array([[456], [465]])
-# comparison_flux_threshold = 0.1
-# dark_paths = glob('/Users/bmmorris/data/UT160711/dark_quad_30.*.fits')
-#
-# aperture_radii = np.arange(7, 18)
-# centroid_stamp_half_width = 5
-# psf_stddev_init = 2
-# aperture_annulus_radius = 10
 
-########################################################################
-
-# # Use the regions file to find initial stellar centroid guesses
-# star_positions = []
-# counter = 0
-# for line in open(regions_file_path, 'r').read().splitlines():
-#     if line.startswith('circle'):
-#         y_center, x_center = map(float,
-#                                  line.split('(')[1].split(')')[0].split(',')[:2])
-#         star_positions.append([y_center, x_center])
-#         counter += 1
-
-# # Make the calibration frames
-# if make_master_dark or not os.path.exists(master_dark_path):
-#     testdata = fits.getdata(dark_paths[0])
-#     alldarks = np.zeros((testdata.shape[0], testdata.shape[1], len(dark_paths)))
-#     for i, dark_path in enumerate(dark_paths):
-#         alldarks[:, :, i] = fits.getdata(dark_path)
-#
-#     # darks=30 s, target exposures=10 s
-#     master_dark = np.median(alldarks, axis=2)
-#
-#     fits.writeto(master_dark_path, master_dark, clobber=True)
-# else:
-#     master_dark = fits.getdata(master_dark_path)
-
-#######
-
-def reduce(image_paths, master_dark_path, master_flat_path, target_centroid,
-           comparison_flux_threshold, aperture_radii, centroid_stamp_half_width,
-           psf_stddev_init, aperture_annulus_radius, output_path):
+def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
+               comparison_flux_threshold, aperture_radii,
+               centroid_stamp_half_width, psf_stddev_init,
+               aperture_annulus_radius, output_path):
     """
     Parameters
     ----------
