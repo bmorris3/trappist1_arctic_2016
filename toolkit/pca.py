@@ -6,14 +6,21 @@ from sklearn.decomposition import PCA
 from astropy.stats import mad_std
 
 from .regression import regression_coeffs, regression_model
-from .photometry_results import PhotometryResults
-from .transit_model import params_b
 
 __all__ = ['PCA_light_curve']
 
 
 def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
                     outlier_mad_std_factor=2.0, plots=False):
+    """
+    Parameters
+    ----------
+    pr : `~toolkit.PhotometryResults`
+    transit_parameters : `~batman.TransitParams`
+    buffer_time : `~astropy.units.Quantity`
+    outlier_mad_std_factor :
+    plots :
+    """
     expected_mid_transit_jd = (np.max(np.abs(pr.times - transit_parameters.t0) //
                                       transit_parameters.per) *
                                transit_parameters.per + transit_parameters.t0)
@@ -24,6 +31,7 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
     final_lc_mad = np.ones(len(pr.aperture_radii))
 
     final_lc = None
+    figures = []
 
     for aperture_index in range(len(pr.aperture_radii)):
         target_fluxes = pr.fluxes[:, 0, aperture_index]
@@ -35,11 +43,14 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
             flux_i = pr.fluxes[:, i, aperture_index]
 
             linear_flux_trend = np.polyval(np.polyfit(pr.times, flux_i, 2), pr.times)
-            new_inliers = np.abs(flux_i - linear_flux_trend) < outlier_mad_std_factor*mad_std(flux_i)
+            new_inliers = (np.abs(flux_i - linear_flux_trend) < outlier_mad_std_factor *
+                           mad_std(flux_i))
             inliers &= new_inliers
 
             # plt.plot(pr.times, flux_i - linear_flux_trend)
-            # plt.plot(pr.times[np.logical_not(new_inliers)], (flux_i - linear_flux_trend)[np.logical_not(new_inliers)], 'ro')
+            # plt.plot(pr.times[np.logical_not(new_inliers)],
+            #          (flux_i - linear_flux_trend)[np.logical_not(new_inliers)],
+            #           'ro')
             # plt.show()
 
         out_of_transit = ((Time(pr.times, format='jd') > mid_transit_time + transit_duration/2) |
@@ -110,8 +121,8 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
 
         for i, n_comp in enumerate(n_components):
 
-            lc_training, lc_validation, std_lc_training, std_lc_validation = train_pca_linreg_model(oot, oot_no_validation, n_comp)
-
+            results = train_pca_linreg_model(oot, oot_no_validation, n_comp)
+            lc_training, lc_validation, std_lc_training, std_lc_validation = results
             stds_validation[i] = std_lc_validation
             stds_training[i] = std_lc_training
 
@@ -123,11 +134,16 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
             # plt.show()
 
         best_n_components = n_components[np.argmin(stds_validation)]
-        # plt.plot(n_components, stds_validation, label='validation')
-        # plt.plot(n_components, stds_training, label='training')
-        # plt.axvline(best_n_components, color='r', ls='--')
-        # plt.title(aperture_index)
-        # plt.legend()
+        if plots:
+            fig = plt.figure()
+            plt.plot(n_components, stds_validation, label='validation')
+            plt.plot(n_components, stds_training, label='training')
+            plt.axvline(best_n_components, color='r', ls='--')
+            plt.title("Aperture: {0} (index: {1})"
+                      .format(pr.aperture_radii[aperture_index],
+                              aperture_index))
+            plt.legend()
+            figures.append(fig)
         # plt.show()
 
 
@@ -153,6 +169,12 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
             final_lc = best_lc.copy()
 
     if plots:
+        # Close all validation plots except the best aperture's
+        for i, fig in enumerate(figures):
+            if i != np.argmin(final_lc_mad):
+                plt.close(fig)
+
+        plt.figure()
         plt.plot(pr.aperture_radii, final_lc_mad)
         plt.axvline(pr.aperture_radii[np.argmin(final_lc_mad)], ls='--', color='r')
         plt.xlabel('Aperture radii')
