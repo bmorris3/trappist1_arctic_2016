@@ -40,6 +40,29 @@ params_c.depth_error = 0.042
 params_c.duration = 41.78 * u.min
 
 
+# Planet d:
+params_d = batman.TransitParams()
+params_d.per = 18.20175
+params_d.t0 = 2450000 + 7294.7741
+params_d.inc = 89.87
+params_d.rp = np.sqrt(0.00826)
+
+# Estimate a/R* for planet d:
+p = np.array([params_b.per, params_c.per])
+a = np.array([params_b.a, params_c.a])
+mean_ratio = np.mean(p**2 / a**3)
+a_estimate = (params_d.per**2 / mean_ratio)**(1/3)
+
+params_d.a = a_estimate
+params_d.ecc = 0
+params_d.w = 90
+params_d.u = [0.65, 0.28]
+params_d.limb_dark = 'quadratic'
+
+params_d.depth_error = 0.073
+params_d.duration = 83.3 * u.min
+
+
 def transit_model_b(times, params=params_b):
     """
     Get a transit model for TRAPPIST-1b at ``times``.
@@ -62,6 +85,27 @@ def transit_model_b(times, params=params_b):
 
 
 def transit_model_c(times, params=params_c):
+    """
+    Get a transit model for TRAPPIST-1c at ``times``.
+
+    Parameters
+    ----------
+    times : `~numpy.ndarray`
+        Times in Julian date
+    params : `~batman.TransitParams`
+        Transiting planet parameters
+
+    Returns
+    -------
+    flux : `numpy.ndarray`
+        Fluxes at each time
+    """
+    m = batman.TransitModel(params, times)
+    model = m.light_curve(params)
+    return model
+
+
+def transit_model_d(times, params=params_d):
     """
     Get a transit model for TRAPPIST-1c at ``times``.
 

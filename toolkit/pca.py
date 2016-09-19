@@ -11,15 +11,21 @@ __all__ = ['PCA_light_curve']
 
 
 def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
-                    outlier_mad_std_factor=2.0, plots=False):
+                    outlier_mad_std_factor=2.0, plots=False,
+                    validation_duration_fraction=4/5):
     """
     Parameters
     ----------
     pr : `~toolkit.PhotometryResults`
     transit_parameters : `~batman.TransitParams`
     buffer_time : `~astropy.units.Quantity`
-    outlier_mad_std_factor :
-    plots :
+    outlier_mad_std_factor : float
+    plots : bool
+    validation_duration_fraction :  float
+
+    Returns
+    -------
+    best_lc : `~numpy.ndarray`
     """
     expected_mid_transit_jd = (np.max(np.abs(pr.times - transit_parameters.t0) //
                                       transit_parameters.per) *
@@ -56,7 +62,7 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
         out_of_transit = ((Time(pr.times, format='jd') > mid_transit_time + transit_duration/2) |
                           (Time(pr.times, format='jd') < mid_transit_time - transit_duration/2))
 
-        validation_duration = 4/5 * transit_duration
+        validation_duration = validation_duration_fraction * transit_duration
 
         validation_mask = ((Time(pr.times, format='jd') < mid_transit_time +
                             1.5 * transit_duration + validation_duration / 2) &

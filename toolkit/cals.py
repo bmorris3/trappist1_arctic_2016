@@ -7,8 +7,29 @@ from astropy.io import fits
 
 from .regression import regression_model, regression_coeffs
 
-__all__ = ['generate_master_flat_and_dark']
+__all__ = ['generate_master_flat_and_dark', 'generate_master_dark']
 
+
+def generate_master_dark(dark_paths, master_dark_path):
+    """
+    Create a master flat from night-sky flats, and a master dark.
+
+    Parameters
+    ----------
+    dark_paths : list
+        List of paths to dark frames
+    master_dark_path : str
+        Path to master dark frame that will be created
+    """
+    # Make master dark frame:
+    testdata = fits.getdata(dark_paths[0])
+    allflatdarks = np.zeros((testdata.shape[0], testdata.shape[1],
+                             len(dark_paths)))
+    for i, darkpath in enumerate(dark_paths):
+        allflatdarks[:, :, i] = fits.getdata(darkpath)
+    masterflatdark = np.median(allflatdarks, axis=2)
+
+    fits.writeto(master_dark_path, masterflatdark, clobber=True)
 
 def generate_master_flat_and_dark(flat_paths, dark_paths, master_flat_path,
                                   master_dark_path):

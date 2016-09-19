@@ -1,7 +1,5 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from glob import glob
-import os
 
 import numpy as np
 from astropy.io import fits
@@ -52,7 +50,7 @@ def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
     master_flat = fits.getdata(master_flat_path)
 
     star_positions = init_centroids(image_paths[0], master_flat, master_dark,
-                                    target_centroid,
+                                    target_centroid, plots=True,
                                     min_flux=comparison_flux_threshold).T
 
     # Initialize some empty arrays to fill with data:
