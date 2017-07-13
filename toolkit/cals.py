@@ -66,49 +66,56 @@ def generate_master_flat_and_dark(flat_paths, dark_paths, master_flat_path,
         flat_dark_subtracted = fits.getdata(flatpath) - masterflatdark # * 2
         allflats[:, :, i] = flat_dark_subtracted
 
-    coefficients = np.ones((allflats.shape[0], allflats.shape[1]), dtype=float)
+    # Since this sky flat is bad anyway, do a median sky flat:
 
-    median_pixel_flux = np.atleast_2d(np.median(allflats, axis=(0, 1))).T
+    coefficients = np.median(allflats, axis=2)
+    coefficients[coefficients / np.median(coefficients) < 0.01] = np.median(coefficients)
+    master_flat = coefficients / np.median(coefficients)
 
-    margin = 5
-
-    with ProgressBar(allflats.size) as bar:
-        for i in range(margin, allflats.shape[0]-margin):
-            for j in range(margin, allflats.shape[1]-margin):
-                bar.update()
-
-                pixel_fluxes = allflats[i, j, :]
-                pixel_errors = np.sqrt(pixel_fluxes)
-
-                mask = np.ones_like(pixel_fluxes).astype(bool)
-                indices = np.arange(len(pixel_fluxes))
-
-                while True:
-                    # If pixel fluxes are negative, set that pixel to one
-                    if pixel_fluxes.mean() < 100:
-                        c = [1.0]
-                        break
-
-                    inds = indices[mask]
-                    c = regression_coeffs(median_pixel_flux[mask],
-                                          pixel_fluxes[mask],
-                                          pixel_errors[mask])
-                    m = regression_model(c, median_pixel_flux[mask])
-                    sigmas = np.abs(pixel_fluxes[mask] - m)/pixel_errors[mask]
-                    max_sigma_index = np.argmax(sigmas)
-
-                    # If max outlier is >3 sigma from model, mask it and refit
-                    if sigmas[max_sigma_index] > 3 and np.count_nonzero(mask) > 3:
-                        mask[inds[max_sigma_index]] = False
-
-                    # If max outlier is <3 sigma from model or there are 3 points
-                    # left unmasked in the pixel flux series, use that coefficient
-                    else:
-                        break
-                coefficients[i, j] = c[0] if not np.isnan(c[0]) else 1.0
-
-    #np.save('coefficients.npy', coefficients)
-    master_flat = coefficients/np.median(coefficients[coefficients != 1])
+    #
+    # coefficients = np.ones((allflats.shape[0], allflats.shape[1]), dtype=float)
+    #
+    # median_pixel_flux = np.atleast_2d(np.median(allflats, axis=(0, 1))).T
+    #
+    # margin = 5
+    #
+    # with ProgressBar(allflats.size) as bar:
+    #     for i in range(margin, allflats.shape[0]-margin):
+    #         for j in range(margin, allflats.shape[1]-margin):
+    #             bar.update()
+    #
+    #             pixel_fluxes = allflats[i, j, :]
+    #             pixel_errors = np.sqrt(pixel_fluxes)
+    #
+    #             mask = np.ones_like(pixel_fluxes).astype(bool)
+    #             indices = np.arange(len(pixel_fluxes))
+    #
+    #             while True:
+    #                 # If pixel fluxes are negative, set that pixel to one
+    #                 if pixel_fluxes.mean() < 100:
+    #                     c = [1.0]
+    #                     break
+    #
+    #                 inds = indices[mask]
+    #                 c = regression_coeffs(median_pixel_flux[mask],
+    #                                       pixel_fluxes[mask],
+    #                                       pixel_errors[mask])
+    #                 m = regression_model(c, median_pixel_flux[mask])
+    #                 sigmas = np.abs(pixel_fluxes[mask] - m)/pixel_errors[mask]
+    #                 max_sigma_index = np.argmax(sigmas)
+    #
+    #                 # If max outlier is >3 sigma from model, mask it and refit
+    #                 if sigmas[max_sigma_index] > 3 and np.count_nonzero(mask) > 3:
+    #                     mask[inds[max_sigma_index]] = False
+    #
+    #                 # If max outlier is <3 sigma from model or there are 3 points
+    #                 # left unmasked in the pixel flux series, use that coefficient
+    #                 else:
+    #                     break
+    #             coefficients[i, j] = c[0] if not np.isnan(c[0]) else 1.0
+    #
+    # #np.save('coefficients.npy', coefficients)
+    # master_flat = coefficients/np.median(coefficients[coefficients != 1])
     fits.writeto(master_flat_path, master_flat, clobber=True)
 
 

@@ -6,7 +6,7 @@ from astropy.io import fits
 from astropy.time import Time
 from astropy.utils.console import ProgressBar
 from astropy.modeling import models, fitting
-from photutils.morphology import centroid_2dg
+from photutils.morphology import centroid_2dg, centroid_com
 from photutils import CircularAperture, CircularAnnulus, aperture_photometry
 
 from .star_selection import init_centroids
@@ -14,6 +14,15 @@ from .photometry_results import PhotometryResults
 
 __all__ = ['photometry']
 
+def rebin_image(a, binning_factor):
+    # Courtesy of J.F. Sebastian: http://stackoverflow.com/a/8090605
+    if binning_factor == 1:
+        return a
+
+    new_shape = (a.shape[0]/binning_factor, a.shape[1]/binning_factor)
+    sh = (new_shape[0], a.shape[0]//new_shape[0], new_shape[1],
+          a.shape[1]//new_shape[1])
+    return a.reshape(sh).sum(-1).sum(1)
 
 def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
                comparison_flux_threshold, aperture_radii,
@@ -74,7 +83,7 @@ def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
             bar.update()
 
             # Subtract image by the dark frame, normalize by flat field
-            imagedata = (fits.getdata(image_paths[i]) - master_dark) / master_flat
+            imagedata = (rebin_image(fits.getdata(image_paths[i]), 2) - master_dark[:-1, :-1]) / master_flat[:-1, :-1]
 
             # Collect information from the header
             imageheader = fits.getheader(image_paths[i])
@@ -101,12 +110,24 @@ def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
                                         init_x + centroid_stamp_half_width]
 
                 # Measure stellar centroid with 2D gaussian fit
-                x_stamp_centroid, y_stamp_centroid = centroid_2dg(image_stamp)
+                x_stamp_centroid, y_stamp_centroid = centroid_com(image_stamp)
                 y_centroid = x_stamp_centroid + init_x - centroid_stamp_half_width
                 x_centroid = y_stamp_centroid + init_y - centroid_stamp_half_width
 
                 xcentroids[i, j] = x_centroid
                 ycentroids[i, j] = y_centroid
+
+                # import matplotlib.pyplot as plt
+                # plt.figure()
+                # plt.imshow(image_stamp, origin='lower', cmap=plt.cm.viridis)
+                # plt.show()
+                #
+                # plt.figure()
+                # s = np.std(imagedata)
+                # m = np.median(imagedata)
+                # plt.imshow(imagedata, origin='lower', cmap=plt.cm.viridis,
+                #            vmin=m-2*s, vmax=m+2*s)
+                # plt.show()
 
                 # For the target star, measure PSF:
                 if j == 0:
