@@ -19,7 +19,7 @@ def rebin_image(a, binning_factor):
     if binning_factor == 1:
         return a
 
-    new_shape = (a.shape[0]/binning_factor, a.shape[1]/binning_factor)
+    new_shape = (a.shape[0]//binning_factor, a.shape[1]//binning_factor)
     sh = (new_shape[0], a.shape[0]//new_shape[0], new_shape[1],
           a.shape[1]//new_shape[1])
     return a.reshape(sh).sum(-1).sum(1)
@@ -58,7 +58,9 @@ def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
     master_dark = fits.getdata(master_dark_path)
     master_flat = fits.getdata(master_flat_path)
 
-    star_positions = init_centroids(image_paths[0], master_flat, master_dark,
+    master_flat[master_flat < 0.1] = 1.0 # tmp
+
+    star_positions = init_centroids(image_paths[0:3], master_flat, master_dark,
                                     target_centroid, plots=True,
                                     min_flux=comparison_flux_threshold).T
 
@@ -83,11 +85,15 @@ def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
             bar.update()
 
             # Subtract image by the dark frame, normalize by flat field
-            imagedata = (rebin_image(fits.getdata(image_paths[i]), 2) - master_dark[:-1, :-1]) / master_flat[:-1, :-1]
+            #imagedata = (rebin_image(fits.getdata(image_paths[i]), 2) - master_dark[:-1, :-1]) / master_flat[:-1, :-1]
+            # imagedata = (rebin_image(fits.getdata(image_paths[i]), 2) - master_dark[:-1, :-1])/master_flat[:-1, :-1]
+
+            imagedata = (fits.getdata(image_paths[i]) - master_dark) / master_flat
 
             # Collect information from the header
             imageheader = fits.getheader(image_paths[i])
-            times[i] = Time(imageheader['DATE-OBS'], format='isot', scale='utc').jd
+            exposure_duration = imageheader['EXPTIME']
+            times[i] = Time(imageheader['DATE-OBS'], format='isot', scale=imageheader['TIMESYS'].lower()).jd
             medians[i] = np.median(imagedata)
             airmass[i] = imageheader['AIRMASS']
             airpress[i] = imageheader['AIRPRESS']
@@ -104,10 +110,10 @@ def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
                     init_y = xcentroids[i-1][j]
 
                 # Cut out a stamp of the full image centered on the star
-                image_stamp = imagedata[init_y - centroid_stamp_half_width:
-                                        init_y + centroid_stamp_half_width,
-                                        init_x - centroid_stamp_half_width:
-                                        init_x + centroid_stamp_half_width]
+                image_stamp = imagedata[int(init_y) - centroid_stamp_half_width:
+                                        int(init_y) + centroid_stamp_half_width,
+                                        int(init_x) - centroid_stamp_half_width:
+                                        int(init_x) + centroid_stamp_half_width]
 
                 # Measure stellar centroid with 2D gaussian fit
                 x_stamp_centroid, y_stamp_centroid = centroid_com(image_stamp)
@@ -119,7 +125,8 @@ def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
 
                 # import matplotlib.pyplot as plt
                 # plt.figure()
-                # plt.imshow(image_stamp, origin='lower', cmap=plt.cm.viridis)
+                # plt.imshow(np.log(image_stamp), origin='lower', cmap=plt.cm.viridis)
+                # plt.scatter(x_stamp_centroid, y_stamp_centroid, s=30)
                 # plt.show()
                 #
                 # plt.figure()
@@ -142,16 +149,17 @@ def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
                     best_psf_model = fit_p(psf_model_init, x, y, image_stamp -
                                            np.median(image_stamp))
                     psf_stddev[i] = 0.5*(best_psf_model.x_stddev.value +
-                                         best_psf_model.y_stddev.value)
+                                          best_psf_model.y_stddev.value)
 
             positions = np.vstack([ycentroids[i, :], xcentroids[i, :]])
 
             for k, aperture_radius in enumerate(aperture_radii):
                 target_apertures = CircularAperture(positions, aperture_radius)
                 background_annuli = CircularAnnulus(positions,
-                                                    r_in=aperture_radius,
+                                                    r_in=aperture_radius +
+                                                         aperture_annulus_radius,
                                                     r_out=aperture_radius +
-                                                          aperture_annulus_radius)
+                                                          2 * aperture_annulus_radius)
                 flux_in_annuli = aperture_photometry(imagedata,
                                                      background_annuli)['aperture_sum'].data
                 background = flux_in_annuli/background_annuli.area()
@@ -160,7 +168,7 @@ def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
                 background_subtracted_flux = (flux - background *
                                               target_apertures.area())
 
-                fluxes[i, :, k] = background_subtracted_flux
+                fluxes[i, :, k] = background_subtracted_flux/exposure_duration
                 errors[i, :, k] = np.sqrt(flux)
 
     ## Save some values

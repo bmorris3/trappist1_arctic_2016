@@ -7,7 +7,7 @@ from toolkit import (generate_master_flat_and_dark, photometry,
                      PhotometryResults, PCA_light_curve, params_b)
 
 # Image paths
-image_paths = sorted(glob('/Users/bmmorris/data/UT160920/Trappist*.fits'))[:-20]
+image_paths = sorted(glob('/Users/bmmorris/data/UT160920/Trappist*.fits'))#[:-20]
 dark_30s_paths = glob('/Users/bmmorris/data/UT160918/bias.*.fits')
 night_flat_paths = glob('/Users/bmmorris/data/UT160711/nightskyflatz.*.fits')
 master_flat_path = 'outputs/masterflat.fits'
@@ -24,7 +24,7 @@ transit_parameters = params_b
 
 
 output_path = 'outputs/trappist1b_20160920.npz'
-force_recompute_photometry = True# False
+force_recompute_photometry = False
 
 # Calculate master dark/flat:
 if not os.path.exists(master_dark_path) or not os.path.exists(master_flat_path):

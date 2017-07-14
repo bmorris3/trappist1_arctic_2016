@@ -11,8 +11,10 @@ __all__ = ['PCA_light_curve']
 
 
 def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
-                    outlier_mad_std_factor=2.0, plots=False,
-                    validation_duration_fraction=4/5):
+                    outlier_mad_std_factor=3.0, plots=False,
+                    validation_duration_fraction=1/6,
+                    flux_threshold=0.89, validation_time=-0.65,
+                    plot_validation=False, outlier_rejection=True):
     """
     Parameters
     ----------
@@ -27,8 +29,8 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
     -------
     best_lc : `~numpy.ndarray`
     """
-    expected_mid_transit_jd = (np.max(np.abs(pr.times - transit_parameters.t0) //
-                                      transit_parameters.per) *
+    expected_mid_transit_jd = ((np.max(np.abs(pr.times - transit_parameters.t0) //
+                                       transit_parameters.per) ) * # need to add +1 here for 20170502, don't know why TMP
                                transit_parameters.per + transit_parameters.t0)
     mid_transit_time = Time(expected_mid_transit_jd, format='jd')
 
@@ -43,21 +45,29 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
         target_fluxes = pr.fluxes[:, 0, aperture_index]
         target_errors = pr.errors[:, 0, aperture_index]
 
-        inliers = np.ones_like(pr.fluxes[:, 0, aperture_index]).astype(bool)
+        if not outlier_rejection:
+            inliers = np.ones_like(pr.fluxes[:, 0, aperture_index]).astype(bool)
 
-        for i in range(pr.fluxes.shape[1]):
-            flux_i = pr.fluxes[:, i, aperture_index]
+        else:
+        # inliers = target_fluxes >= flux_threshold*target_fluxes.max()
 
-            linear_flux_trend = np.polyval(np.polyfit(pr.times, flux_i, 2), pr.times)
-            new_inliers = (np.abs(flux_i - linear_flux_trend) < outlier_mad_std_factor *
-                           mad_std(flux_i))
-            inliers &= new_inliers
+            inliers = np.ones_like(pr.fluxes[:, 0, aperture_index]).astype(bool)
 
-            # plt.plot(pr.times, flux_i - linear_flux_trend)
-            # plt.plot(pr.times[np.logical_not(new_inliers)],
-            #          (flux_i - linear_flux_trend)[np.logical_not(new_inliers)],
-            #           'ro')
-            # plt.show()
+            for i in range(pr.fluxes.shape[1]):
+                flux_i = pr.fluxes[:, i, aperture_index]
+
+                linear_flux_trend = np.polyval(np.polyfit(pr.times - pr.times.mean(),
+                                                          flux_i, 1),
+                                               pr.times - pr.times.mean())
+                new_inliers = (np.abs(flux_i - linear_flux_trend) < outlier_mad_std_factor *
+                               mad_std(flux_i))
+                inliers &= new_inliers
+
+                # plt.plot(pr.times, flux_i - linear_flux_trend)
+                # plt.plot(pr.times[np.logical_not(new_inliers)],
+                #          (flux_i - linear_flux_trend)[np.logical_not(new_inliers)],
+                #           'ro')
+                # plt.show()
 
         out_of_transit = ((Time(pr.times, format='jd') > mid_transit_time + transit_duration/2) |
                           (Time(pr.times, format='jd') < mid_transit_time - transit_duration/2))
@@ -65,12 +75,25 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
         validation_duration = validation_duration_fraction * transit_duration
 
         validation_mask = ((Time(pr.times, format='jd') < mid_transit_time +
-                            1.5 * transit_duration + validation_duration / 2) &
+                            validation_time * transit_duration + validation_duration / 2) &
                            (Time(pr.times, format='jd') > mid_transit_time +
-                            1.5 * transit_duration - validation_duration / 2))
+                            validation_time * transit_duration - validation_duration / 2))
 
         oot = out_of_transit & inliers
         oot_no_validation = (out_of_transit & inliers & np.logical_not(validation_mask))
+
+        if plot_validation:
+            plt.figure()
+            plt.plot(pr.times[~oot], target_fluxes[~oot], '.', label='in-t')
+            plt.plot(pr.times[oot], target_fluxes[oot], '.', label='oot')
+            plt.plot(pr.times[validation_mask], target_fluxes[validation_mask], '.',
+                     label='validation')
+            plt.axvline(mid_transit_time.jd, ls='--', color='r', label='midtrans')
+            plt.legend()
+            plt.title(np.count_nonzero(validation_mask))
+            plt.xlabel('JD')
+            plt.ylabel('Flux')
+            plt.show()
 
         ones = np.ones((len(pr.times), 1))
         regressors = np.hstack([pr.fluxes[:, 1:, aperture_index],
@@ -144,6 +167,8 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
             fig = plt.figure()
             plt.plot(n_components, stds_validation, label='validation')
             plt.plot(n_components, stds_training, label='training')
+            plt.xlabel('Components')
+            plt.ylabel('std')
             plt.axvline(best_n_components, color='r', ls='--')
             plt.title("Aperture: {0} (index: {1})"
                       .format(pr.aperture_radii[aperture_index],
