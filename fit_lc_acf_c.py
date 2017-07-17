@@ -114,7 +114,7 @@ if __name__ == '__main__':
     initial = np.concatenate([initp, [lna_init, lntau_init, lnw_init]])
 
     ndim, nwalkers = len(initial), 2*len(initial)
-    n_steps = 2000
+    n_steps = 4000
 
     # Set initial walker positions
     load_init_walker_positions = False
