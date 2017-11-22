@@ -10,11 +10,11 @@ from toolkit import (generate_master_dark, photometry, transit_model_c,
 image_paths = sorted(glob('/Users/bmmorris/data/UT160619/trappist-1.*.fits'))[:-10]
 dark_paths = glob('/Users/bmmorris/data/UT160619/dark-45s.*.fits')
 night_flat_paths = glob('/Users/bmmorris/data/UT160711/nightskyflatz.*.fits')
-master_flat_path = 'outputs/masterflat_binning3x3.fits' #'outputs/masterflat_placebo.fits'  #
+master_flat_path = 'outputs/masterflat_binning3x3.fits'
 master_dark_path = 'outputs/masterdark_binning3x3.fits'
 
 # Photometry settings
-target_centroid = [633, 579]#np.array([[633], [579]])
+target_centroid = [633, 579]
 comparison_flux_threshold = 0.2
 aperture_radii = np.arange(7, 30)
 centroid_stamp_half_width = 5
@@ -24,7 +24,7 @@ transit_parameters = params_c
 
 
 output_path = 'outputs/trappist1c_20160619.npz'
-force_recompute_photometry = False #True
+force_recompute_photometry = False  #True
 
 # Calculate master dark/flat:
 if not os.path.exists(master_dark_path):
@@ -45,7 +45,7 @@ else:
 print('Calculating PCA...')
 light_curve = PCA_light_curve(phot_results, transit_parameters,
                               validation_duration_fraction=0.5, plots=True,
-                              plot_validation=True, validation_time=0.9,
+                              plot_validation=False, validation_time=0.9,
                               outlier_rejection=False)
 
 

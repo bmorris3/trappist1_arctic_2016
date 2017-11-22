@@ -14,7 +14,7 @@ master_flat_path = 'outputs/masterflat.fits'
 master_dark_path = 'outputs/masterdark.fits'
 
 # Photometry settings
-target_centroid = [465, 456]#np.array([[456], [465]])
+target_centroid = [465, 456]
 comparison_flux_threshold = 0.05
 aperture_radii = np.arange(7, 25)
 centroid_stamp_half_width = 3
@@ -50,8 +50,6 @@ light_curve = PCA_light_curve(phot_results, transit_parameters, plots=True,
                               plot_validation=False, buffer_time=1*u.min,
                               validation_duration_fraction=0.7,
                               validation_time=-1, outlier_rejection=True)
-
-
 
 plt.figure()
 plt.plot(phot_results.times, light_curve, 'k.')

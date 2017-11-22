@@ -7,7 +7,7 @@ from toolkit.transit_model import params_b, transit_model_b_t0
 import astropy.units as u
 from astropy.stats import mad_std
 
-samples = np.load('outputs/samples.npy')[1000:, :]#np.loadtxt('outputs/samples_converged.txt')
+samples = np.load('outputs/samples_b.npy')[1000:, :]#np.loadtxt('outputs/samples_converged.txt')
 path = 'outputs/trappist1b_20160711.npz'
 phot_results = PhotometryResults.load(path)
 times = phot_results.times

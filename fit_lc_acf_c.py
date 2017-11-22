@@ -9,9 +9,6 @@ from toolkit import PhotometryResults, PCA_light_curve
 from toolkit.transit_model import params_c, transit_model_c_depth_t0
 
 # Load data
-# times = np.load('outputs/times.npy')
-# light_curve = np.load('outputs/bestlc.npy')
-# light_curve_errors = np.load('outputs/bestlc_errors.npy')
 path = 'outputs/trappist1c_20160619.npz'
 phot_results = PhotometryResults.load(path)
 times = phot_results.times
@@ -61,10 +58,7 @@ def model2(theta, times):
 
 def lnlike2(theta, t, y, yerr):
     depth, t0, lna, lntau, lnw = theta
-    # depth, t0, tau = theta
-
     gp = george.GP(np.exp(lna) * kernels.Matern32Kernel(np.exp(lntau)))
-                   #solver=george.HODLRSolver)
     gp.compute(t, np.sqrt(yerr**2 + np.exp(2*lnw)))
     return gp.lnlikelihood(y - model2(theta, t))
 
@@ -74,7 +68,7 @@ def lnprior2(theta):
     depth, t0, lna, lntau, lnw = theta
 
     #  and
-    if (0 < depth < 0.05 and #-15 < lntau < 1 and -20 < lna < 0.0 and -13 < lnw < 0.0):
+    if (0 < depth < 0.05 and
         expected_mid_transit_jd - 0.01 < t0 < expected_mid_transit_jd + 0.01 and
         -15 < lntau < 5 and -20 < lna < 10.0 and -11 < lnw < 10.0):
         # Prior on depth from the discovery paper:
@@ -90,21 +84,10 @@ def lnprob2(theta, x, y, yerr):
 if __name__ == '__main__':
     plt.plot(original_time_series['times'], original_time_series['residuals'], 'r.')
     plt.plot(times, residuals, 'b.')
-    #plt.plot(times[inliers], residuals[inliers], '.')
     plt.show()
 
-    # Set init transit parameters to those from discovery paper
-    #initp = np.array([params_c.rp**2, params_c.t0])
-    #initp = np.array([params_c.t0])
     initp = np.array([params_c.rp**2, expected_mid_transit_jd])
     init_transit_model = transit_model_c_depth_t0(times, *initp)
-
-    # Compute acf, find autoregressive period
-    # lags, acf = interpolated_acf(times, light_curve - init_transit_model)
-    # residual_period = dominant_period(lags, acf, fwhm=20, plot=True,
-    #                                   min=0.005, max=0.02)
-    # print(residual_period)
-    # plt.show()
 
     # Initial guesses based on iterative guessing
     lna_init = -0.1
@@ -114,7 +97,7 @@ if __name__ == '__main__':
     initial = np.concatenate([initp, [lna_init, lntau_init, lnw_init]])
 
     ndim, nwalkers = len(initial), 2*len(initial)
-    n_steps = 4000
+    n_steps = 10000
 
     # Set initial walker positions
     load_init_walker_positions = False

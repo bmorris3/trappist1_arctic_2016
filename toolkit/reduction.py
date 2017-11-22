@@ -14,6 +14,7 @@ from .photometry_results import PhotometryResults
 
 __all__ = ['photometry']
 
+
 def rebin_image(a, binning_factor):
     # Courtesy of J.F. Sebastian: http://stackoverflow.com/a/8090605
     if binning_factor == 1:
@@ -23,6 +24,7 @@ def rebin_image(a, binning_factor):
     sh = (new_shape[0], a.shape[0]//new_shape[0], new_shape[1],
           a.shape[1]//new_shape[1])
     return a.reshape(sh).sum(-1).sum(1)
+
 
 def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
                comparison_flux_threshold, aperture_radii,
@@ -85,9 +87,6 @@ def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
             bar.update()
 
             # Subtract image by the dark frame, normalize by flat field
-            #imagedata = (rebin_image(fits.getdata(image_paths[i]), 2) - master_dark[:-1, :-1]) / master_flat[:-1, :-1]
-            # imagedata = (rebin_image(fits.getdata(image_paths[i]), 2) - master_dark[:-1, :-1])/master_flat[:-1, :-1]
-
             imagedata = (fits.getdata(image_paths[i]) - master_dark) / master_flat
 
             # Collect information from the header
@@ -122,19 +121,6 @@ def photometry(image_paths, master_dark_path, master_flat_path, target_centroid,
 
                 xcentroids[i, j] = x_centroid
                 ycentroids[i, j] = y_centroid
-
-                # import matplotlib.pyplot as plt
-                # plt.figure()
-                # plt.imshow(np.log(image_stamp), origin='lower', cmap=plt.cm.viridis)
-                # plt.scatter(x_stamp_centroid, y_stamp_centroid, s=30)
-                # plt.show()
-                #
-                # plt.figure()
-                # s = np.std(imagedata)
-                # m = np.median(imagedata)
-                # plt.imshow(imagedata, origin='lower', cmap=plt.cm.viridis,
-                #            vmin=m-2*s, vmax=m+2*s)
-                # plt.show()
 
                 # For the target star, measure PSF:
                 if j == 0:

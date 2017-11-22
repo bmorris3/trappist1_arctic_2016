@@ -49,8 +49,6 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
             inliers = np.ones_like(pr.fluxes[:, 0, aperture_index]).astype(bool)
 
         else:
-        # inliers = target_fluxes >= flux_threshold*target_fluxes.max()
-
             inliers = np.ones_like(pr.fluxes[:, 0, aperture_index]).astype(bool)
 
             for i in range(pr.fluxes.shape[1]):
@@ -62,12 +60,6 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
                 new_inliers = (np.abs(flux_i - linear_flux_trend) < outlier_mad_std_factor *
                                mad_std(flux_i))
                 inliers &= new_inliers
-
-                # plt.plot(pr.times, flux_i - linear_flux_trend)
-                # plt.plot(pr.times[np.logical_not(new_inliers)],
-                #          (flux_i - linear_flux_trend)[np.logical_not(new_inliers)],
-                #           'ro')
-                # plt.show()
 
         out_of_transit = ((Time(pr.times, format='jd') > mid_transit_time + transit_duration/2) |
                           (Time(pr.times, format='jd') < mid_transit_time - transit_duration/2))
@@ -107,6 +99,7 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
 
         n_components = np.arange(2, regressors.shape[1])
 
+
         def train_pca_linreg_model(out_of_transit_mask, oot_no_validation_mask, n_comp):
 
             # OOT chunk first:
@@ -141,7 +134,6 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
 
             std_lc_validation = np.std((lc_validation + median_oot) / median_oot)
 
-            #return lc_training, lc_validation
             return lc_training, lc_validation, std_lc_training, std_lc_validation
 
 
@@ -154,13 +146,6 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
             lc_training, lc_validation, std_lc_training, std_lc_validation = results
             stds_validation[i] = std_lc_validation
             stds_training[i] = std_lc_training
-
-            # plt.title(n_comp)
-            # plt.plot(times[oot], lc_training, 'b.')
-            # plt.plot(times[oot], lc_validation, 'r.')
-            # # plt.plot(times[inliers], target_fluxes[inliers], '.')
-            # # plt.plot(times[not_masked], model)
-            # plt.show()
 
         best_n_components = n_components[np.argmin(stds_validation)]
         if plots:
@@ -175,11 +160,8 @@ def PCA_light_curve(pr, transit_parameters, buffer_time=5*u.min,
                               aperture_index))
             plt.legend()
             figures.append(fig)
-        # plt.show()
-
 
         # Now apply PCA to generate light curve with best number of components
-
         pca = PCA(n_components=best_n_components)
         reduced_regressors = pca.fit_transform(regressors[oot], target_fluxes[oot])
 

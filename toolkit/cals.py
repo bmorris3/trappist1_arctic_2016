@@ -31,6 +31,7 @@ def generate_master_dark(dark_paths, master_dark_path):
 
     fits.writeto(master_dark_path, masterflatdark, clobber=True)
 
+
 def generate_master_flat_and_dark(flat_paths, dark_paths, master_flat_path,
                                   master_dark_path):
     """
@@ -138,11 +139,3 @@ def test_flat(image_path, master_flat_path, master_dark_path):
                histtype='stepfilled')
     ax[1].set_title(master_flat_path)
     ax[1].legend()
-
-# import matplotlib.pyplot as plt
-# full_m = model(c, median_pixel_flux)
-# plt.errorbar(indices, pixel_fluxes, yerr=pixel_errors, fmt='o')
-# plt.plot(indices, full_m)
-# plt.plot(indices[~mask], pixel_fluxes[~mask],'ro')
-# plt.title(c)
-# plt.show()
