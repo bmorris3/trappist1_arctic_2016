@@ -84,6 +84,39 @@ ax[1].set_title('Transit')
 ax[2].set_title('Residuals')
 fig.savefig('plots/transit_c.png', bbox_inches='tight', dpi=200)
 
+fig, ax = plt.subplots(2, 1, figsize=(8, 10), sharex=True)
+from astropy.time import Time
+import matplotlib.dates as md
+xfmt = md.DateFormatter('%H:%M')
+ax[0].errorbar(Time(times, format='jd').plot_date, light_curve - mu, yerr=scaled_errors,
+               color='k', fmt='.', ecolor='silver')
+ax[0].plot_date(Time(times, format='jd').plot_date, model_nogp, 'r', lw=2)
+
+ax[1].errorbar(Time(times, format='jd').plot_date, light_curve - model_nogp - mu, yerr=scaled_errors,
+               color='k', fmt='.', ecolor='silver')
+ax[1].axhline(0, ls='--')
+ax[1].xaxis.set_major_formatter(xfmt)
+ax[0].set_title('TRAPPIST-1 c, SDSS $z^\prime$')
+ax[1].set_title('Residuals')
+ax[0].set_ylabel('Flux')
+ax[1].set_ylabel('Flux')
+fig.savefig('plots/transit_c_cropped.png', bbox_inches='tight', dpi=200)
+
+plt.close()
+fig, ax = plt.subplots(1, 1, figsize=(6, 5), sharex=True)
+from astropy.time import Time
+import matplotlib.dates as md
+xfmt = md.DateFormatter('%H:%M')
+ax.errorbar(Time(times, format='jd').plot_date, light_curve - mu, yerr=scaled_errors,
+               color='k', fmt='.', ecolor='silver')
+ax.plot_date(Time(times, format='jd').plot_date, model_nogp, 'r', lw=2)
+ax.xaxis.set_major_formatter(xfmt)
+ax.set_title('TRAPPIST-1 c, SDSS $z^\prime$')
+ax.set_ylabel('Flux')
+ax.set_xlabel('Time')
+fig.savefig('plots/transit_c_cropped.pdf', bbox_inches='tight', dpi=200)
+plt.show()
+
 plt.figure()
 plt.hist(samples[0, :], 30, range=[times.min(), times.max()])
 plt.xlabel('JD')
