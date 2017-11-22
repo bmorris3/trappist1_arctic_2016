@@ -1,5 +1,7 @@
 # trappist1_arctic_2016
 
+[![DOI](https://zenodo.org/badge/63881012.svg)](https://zenodo.org/badge/latestdoi/63881012)
+
 APO ARC 3.5 m/ARCTIC photometry of TRAPPIST-1
 
 The ``toolkit`` directory contains a light Python package for analyzing TRAPPIST-1 light curves with ARCTIC. It depends on the following Python packages: 
