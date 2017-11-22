@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 from astropy.stats import mad_std
 from astropy.io import fits
 from photutils import CircularAperture
-from astroscrappy import detect_cosmics
 
 from astropy.convolution import convolve_fft, Tophat2DKernel
 from pyfftw.interfaces.scipy_fftpack import fft2, ifft2
@@ -30,7 +29,7 @@ def init_centroids(first_image_path, master_flat, master_dark, target_centroid,
 
     convolution[convolution < -5*mad] = 0.0
 
-    from skimage.filters import threshold_otsu, threshold_yen
+    from skimage.filters import threshold_yen
     from skimage.measure import label, regionprops
 
     thresh = threshold_yen(convolution)/4 # Use /4 for planet c, /2 for planet b

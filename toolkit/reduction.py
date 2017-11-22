@@ -6,7 +6,7 @@ from astropy.io import fits
 from astropy.time import Time
 from astropy.utils.console import ProgressBar
 from astropy.modeling import models, fitting
-from photutils.morphology import centroid_2dg, centroid_com
+from photutils.morphology import centroid_com
 from photutils import CircularAperture, CircularAnnulus, aperture_photometry
 
 from .star_selection import init_centroids
