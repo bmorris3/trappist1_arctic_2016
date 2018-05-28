@@ -28,3 +28,26 @@ The ``toolkit`` directory contains a light Python package for analyzing TRAPPIST
 #### Results
 
 The posterior samples for the mid-transit times of planets b and c are stored in the ``outputs`` directory as HDF5 archives. 
+
+#### Citation
+
+If you make use of this code or results, please cite [Morris et al 2018](http://adsabs.harvard.edu/abs/2018RNAAS...2...10M):
+```
+@ARTICLE{Morris2018,
+   author = {{Morris}, B.~M. and {Agol}, E. and {Hawley}, S.~L.},
+    title = "{Photometric Analysis and Transit Times of TRAPPIST-1 B and C}",
+  journal = {Research Notes of the American Astronomical Society},
+archivePrefix = "arXiv",
+   eprint = {1801.04460},
+ primaryClass = "astro-ph.EP",
+     year = 2018,
+    month = jan,
+   volume = 2,
+   number = 1,
+      eid = {10},
+    pages = {10},
+      doi = {10.3847/2515-5172/aaa6cd},
+   adsurl = {http://adsabs.harvard.edu/abs/2018RNAAS...2a..10M},
+  adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+```
